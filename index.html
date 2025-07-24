@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Projection</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+        .chart-container {
+            position: relative;
+            margin: auto;
+            height: 80vh;
+            width: 90vw;
+        }
+    </style>
+</head>
+<body>
+    <h1>Financial Projection</h1>
+    <div class="chart-container">
+        <canvas id="financialChart"></canvas>
+    </div>
+
+    <script>
+        const salaryData = {
+          "2023-11": 755, "2023-12": 679.4,
+          "2024-01": 711.8, "2024-02": 711.8, "2024-03": 711.8, "2024-04": 711.8,
+          "2024-05": 711.8, "2024-06": 920.19, "2024-07": 852.4, "2024-08": 841.73,
+          "2024-09": 841.73, "2024-10": 2365.1, "2024-11": 2331.1, "2024-12": 4546.69,
+          "2025-01": 2331.1, "2025-02": 2324.28, "2025-03": 2923.9, "2025-04": 2331.1,
+          "2025-05": 3124.6, "2025-06": 2481.82, "2025-07": 3832.95, "2025-08": 2331,
+          "2025-09": 2331, "2025-10": 2331, "2025-11": 2331, "2025-12": 6800,
+          "2026-01": 2331, "2026-02": 2331, "2026-03": 2331, "2026-04": 2331,
+          "2026-05": 3263, "2026-06": 2331, "2026-07": 3832, "2026-08": 2331,
+          "2026-09": 2331, "2026-10": 2331, "2026-11": 2331, "2026-12": 6650,
+          "2027-01": 2331, "2027-02": 2331, "2027-03": 2331, "2027-04": 2331,
+          "2027-05": 3263, "2027-06": 2331, "2027-07": 7993
+        };
+
+        const loanData = {
+          "2024-05": 10000, "2024-06": 10000, "2025-06": 8000
+        };
+
+        const actualSavings = {};
+
+        const allMonths = Object.keys(salaryData).sort();
+        const cutoffDate = new Date().toISOString().slice(0, 7);
+
+        let cumulativeSavings = 0;
+        const savingsPoints = allMonths.map(month => {
+            const monthlySaving = salaryData[month] - (actualSavings[month] || 0);
+            cumulativeSavings += monthlySaving;
+            return cumulativeSavings;
+        });
+
+        let cumulativeLoan = 0;
+        const loanPoints = allMonths.map(month => {
+            if (loanData[month]) {
+                cumulativeLoan += loanData[month];
+            }
+            return cumulativeLoan;
+        });
+
+        const cutoffIndex = allMonths.indexOf(cutoffDate);
+
+        const savingsSolid = savingsPoints.map((val, i) => i <= cutoffIndex ? val : null);
+        const savingsDotted = savingsPoints.map((val, i) => i >= cutoffIndex ? val : null);
+
+        const ctx = document.getElementById('financialChart').getContext('2d');
+        const financialChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: allMonths,
+                datasets: [
+                    {
+                        label: 'Cumulative Loan',
+                        data: loanPoints,
+                        borderColor: 'red',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        fill: false,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Cumulative Savings (Actual)',
+                        data: savingsSolid,
+                        borderColor: 'blue',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        fill: false,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Cumulative Savings (Projected)',
+                        data: savingsDotted,
+                        borderColor: 'blue',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value, index, values) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Cumulative Savings vs. Cumulative Loans'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
