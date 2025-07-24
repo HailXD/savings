@@ -44,15 +44,20 @@
           "2024-05": 10000, "2024-06": 10000, "2025-06": 8000
         };
 
-        const actualSavings = {};
+        const actualSavings = {
+            "2023-10": 7985.16,
+        };
 
-        const allMonths = Object.keys(salaryData).sort();
+        const allMonths = Array.from(new Set([...Object.keys(salaryData), ...Object.keys(actualSavings)])).sort();
         const cutoffDate = new Date().toISOString().slice(0, 7);
 
         let cumulativeSavings = 0;
         const savingsPoints = allMonths.map(month => {
-            const monthlySaving = salaryData[month] - (actualSavings[month] || 0);
-            cumulativeSavings += monthlySaving;
+            if (actualSavings[month] !== undefined) {
+                cumulativeSavings = actualSavings[month];
+            } else {
+                cumulativeSavings += salaryData[month] || 0;
+            }
             return cumulativeSavings;
         });
 
