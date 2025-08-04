@@ -48,20 +48,11 @@
 
         const actualSavings = {
             "2023-10": 7985.16,
+            "2025-08": 76458.26
         };
 
         const allMonths = Array.from(new Set([...Object.keys(salaryData), ...Object.keys(actualSavings)])).sort();
         const cutoffDate = new Date().toISOString().slice(0, 7);
-
-        let cumulativeSavings = 0;
-        const savingsPoints = allMonths.map(month => {
-            if (actualSavings[month] !== undefined) {
-                cumulativeSavings = actualSavings[month];
-            } else {
-                cumulativeSavings += salaryData[month] || 0;
-            }
-            return cumulativeSavings;
-        });
 
         let cumulativeLoan = 0;
         const loanPoints = allMonths.map(month => {
@@ -72,6 +63,16 @@
                 cumulativeLoan += loanData[month];
             }
             return cumulativeLoan;
+        });
+
+        let cumulativeSavings = 0;
+        const savingsPoints = allMonths.map((month, i) => {
+            if (actualSavings[month] !== undefined) {
+                cumulativeSavings = actualSavings[month] - loanPoints[i];
+            } else {
+                cumulativeSavings += salaryData[month] || 0;
+            }
+            return cumulativeSavings;
         });
 
         const cutoffIndex = allMonths.indexOf(cutoffDate);
