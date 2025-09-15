@@ -1,18 +1,99 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Projection</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>Financial Projection</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <h1>Financial Projection</h1>
-    <div class="chart-container">
-        <canvas id="financialChart"></canvas>
-    </div>
+  <div class="app" id="app">
+    <header class="app-header">
+      <div class="title">
+        <div class="logo">$</div>
+        <div>
+          <h1>Financial Projection</h1>
+          <p class="subtitle">Wealth trajectory, at a glance</p>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="downloadBtn" class="btn">Download PNG</button>
+        <button id="themeToggle" class="btn btn-ghost" aria-label="Toggle theme">Theme</button>
+      </div>
+    </header>
 
-    <script src="script.js"></script>
+    <section class="controls">
+      <div class="control-group">
+        <label for="rangeSelect">Range</label>
+        <select id="rangeSelect" class="select">
+          <option value="YTD">YTD</option>
+          <option value="1Y" selected>Last 1Y</option>
+          <option value="3Y">Last 3Y</option>
+          <option value="ALL">All</option>
+        </select>
+      </div>
+      <div class="control-group toggles">
+        <label class="chip"><input type="checkbox" id="toggleNet" checked /> Net Worth</label>
+        <label class="chip"><input type="checkbox" id="toggleSavings" checked /> Savings Balance</label>
+        <label class="chip"><input type="checkbox" id="toggleLoans" checked /> Loan Outstanding</label>
+      </div>
+    </section>
+
+    <section class="kpis" id="kpis">
+      <div class="card kpi">
+        <div class="kpi-label">Net Worth</div>
+        <div class="kpi-value" id="kpiNet"></div>
+        <div class="kpi-sub" id="kpiNetDelta"></div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-label">Savings Balance</div>
+        <div class="kpi-value" id="kpiSavings"></div>
+        <div class="kpi-sub" id="kpiSavingsDelta"></div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-label">Loan Outstanding</div>
+        <div class="kpi-value" id="kpiLoans"></div>
+        <div class="kpi-sub" id="kpiLoansDelta"></div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-label">12-Month Projection</div>
+        <div class="kpi-value" id="kpiProj12"></div>
+        <div class="kpi-sub" id="kpiProj12Delta"></div>
+      </div>
+    </section>
+
+    <section class="charts">
+      <div class="card chart-card">
+        <div class="card-header">
+          <h2>Wealth Trajectory</h2>
+          <p class="muted">Actual vs. projected with today marker</p>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="financialChart"></canvas>
+        </div>
+      </div>
+      <div class="card chart-card">
+        <div class="card-header">
+          <h2>Current Allocation</h2>
+          <p class="muted">Savings vs. loan at cutoff</p>
+        </div>
+        <div class="chart-wrap small">
+          <canvas id="allocationChart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer muted">
+      <span id="asOfText"></span>
+    </footer>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
+  <script src="script.js"></script>
 </body>
 </html>
