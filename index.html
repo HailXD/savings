@@ -1,99 +1,651 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#0b1220" />
-  <title>Financial Projection</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Savings Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 30px 40px;
+            background: #f8f9fa;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .stat-card h3 {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .stat-card .change {
+            font-size: 0.9em;
+            margin-top: 8px;
+        }
+
+        .positive {
+            color: #28a745;
+        }
+
+        .negative {
+            color: #dc3545;
+        }
+
+        .chart-container {
+            padding: 40px;
+            position: relative;
+            height: 600px;
+        }
+
+        .controls {
+            padding: 20px 40px;
+            background: #f8f9fa;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .toggle-btn {
+            padding: 8px 16px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .toggle-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .legend-custom {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            padding: 20px 40px;
+            background: white;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: background 0.3s ease;
+        }
+
+        .legend-item:hover {
+            background: #f8f9fa;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        .legend-color.dotted {
+            background: repeating-linear-gradient(
+                to right,
+                currentColor,
+                currentColor 5px,
+                transparent 5px,
+                transparent 10px
+            );
+        }
+
+        .info-panel {
+            padding: 30px 40px;
+            background: #fff;
+        }
+
+        .info-panel h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .info-item {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+
+        .info-item strong {
+            display: block;
+            color: #495057;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        .info-item span {
+            font-size: 1.3em;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .chart-container {
+                height: 400px;
+                padding: 20px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-  <div class="app" id="app">
-    <header class="app-header">
-      <div class="title">
-        <div class="logo">$</div>
-        <div>
-          <h1>Financial Projection</h1>
-          <p class="subtitle">Wealth trajectory, at a glance</p>
+    <div class="container">
+        <div class="header">
+            <h1>💰 Financial Savings Dashboard</h1>
+            <p>Track your savings, loans, and financial projections</p>
         </div>
-      </div>
-      <div class="actions">
-        <button id="downloadBtn" class="btn">Download PNG</button>
-        <button id="themeToggle" class="btn btn-ghost" aria-label="Toggle theme">Theme</button>
-      </div>
-    </header>
 
-    <section class="controls">
-      <div class="control-group">
-        <label for="rangeSelect">Range</label>
-        <select id="rangeSelect" class="select">
-          <option value="YTD">YTD</option>
-          <option value="1Y" selected>Last 1Y</option>
-          <option value="3Y">Last 3Y</option>
-          <option value="ALL">All</option>
-        </select>
-      </div>
-      <div class="control-group toggles">
-        <label class="chip"><input type="checkbox" id="toggleNet" checked /> Net Worth</label>
-        <label class="chip"><input type="checkbox" id="toggleSavings" checked /> Savings Balance</label>
-        <label class="chip"><input type="checkbox" id="toggleLoans" checked /> Loan Outstanding</label>
-      </div>
-    </section>
-
-    <section class="kpis" id="kpis">
-      <div class="card kpi">
-        <div class="kpi-label">Net Worth</div>
-        <div class="kpi-value" id="kpiNet"></div>
-        <div class="kpi-sub" id="kpiNetDelta"></div>
-      </div>
-      <div class="card kpi">
-        <div class="kpi-label">Savings Balance</div>
-        <div class="kpi-value" id="kpiSavings"></div>
-        <div class="kpi-sub" id="kpiSavingsDelta"></div>
-      </div>
-      <div class="card kpi">
-        <div class="kpi-label">Loan Outstanding</div>
-        <div class="kpi-value" id="kpiLoans"></div>
-        <div class="kpi-sub" id="kpiLoansDelta"></div>
-      </div>
-      <div class="card kpi">
-        <div class="kpi-label">12-Month Projection</div>
-        <div class="kpi-value" id="kpiProj12"></div>
-        <div class="kpi-sub" id="kpiProj12Delta"></div>
-      </div>
-    </section>
-
-    <section class="charts">
-      <div class="card chart-card">
-        <div class="card-header">
-          <h2>Wealth Trajectory</h2>
-          <p class="muted">Actual vs. projected with today marker</p>
+        <div class="stats-grid" id="statsGrid">
+            <!-- Stats will be populated by JavaScript -->
         </div>
-        <div class="chart-wrap">
-          <canvas id="financialChart"></canvas>
-        </div>
-      </div>
-      <div class="card chart-card">
-        <div class="card-header">
-          <h2>Current Allocation</h2>
-          <p class="muted">Savings vs. loan at cutoff</p>
-        </div>
-        <div class="chart-wrap small">
-          <canvas id="allocationChart"></canvas>
-        </div>
-      </div>
-    </section>
 
-    <footer class="footer muted">
-      <span id="asOfText"></span>
-    </footer>
-  </div>
+        <div class="chart-container">
+            <canvas id="savingsChart"></canvas>
+        </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
-  <script src="script.js"></script>
+        <div class="controls">
+            <div class="control-group">
+                <label>Toggle Lines:</label>
+                <button class="toggle-btn active" data-line="0">Actual Savings</button>
+                <button class="toggle-btn active" data-line="1">Loan Balance</button>
+                <button class="toggle-btn active" data-line="2">Personal Savings</button>
+                <button class="toggle-btn active" data-line="3">Future Projection</button>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <h2>📊 Key Metrics</h2>
+            <div class="info-grid" id="infoGrid">
+                <!-- Info will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const salaryData = {
+            "2023-11": 755, "2023-12": 679.4,
+            "2024-01": 711.8, "2024-02": 711.8, "2024-03": 711.8, "2024-04": 711.8,
+            "2024-05": 711.8, "2024-06": 920.19, "2024-07": 852.4, "2024-08": 841.73,
+            "2024-09": 841.73, "2024-10": 2365.1, "2024-11": 2331.1, "2024-12": 4546.69,
+            "2025-01": 2331.1, "2025-02": 2324.28, "2025-03": 2923.9, "2025-04": 2331.1,
+            "2025-05": 3124.6, "2025-06": 2481.82, "2025-07": 3832.95, "2025-08": 2546.45,
+            "2025-09": 2629.79, "2025-10": 2331, "2025-11": 2331, "2025-12": 6800,
+            "2026-01": 2331, "2026-02": 2331, "2026-03": 2331, "2026-04": 2331,
+            "2026-05": 3263, "2026-06": 2331, "2026-07": 3832, "2026-08": 2331,
+            "2026-09": 2331, "2026-10": 2331, "2026-11": 2331, "2026-12": 6650,
+            "2027-01": 2331, "2027-02": 2331, "2027-03": 2331, "2027-04": 2331,
+            "2027-05": 3263, "2027-06": 2331, "2027-07": 7993
+        };
+
+        const loanData = {
+            "2024-05": 10000, "2024-06": 10000, "2025-06": 8000, "2025-09": -8000, "2025-10": 19968.6
+        };
+
+        const interest = 2.6;
+        const monthlyInterestRate = interest / 100 / 12;
+
+        const actualSavings = {
+            "2023-10": 7985.16,
+            "2025-08": 77085.43,
+            "2025-09": 79002.89,
+            "2025-10": 73994.51
+        };
+
+        // Process data
+        function processData() {
+            const months = Object.keys(salaryData);
+            const allMonths = ["2023-10", ...months]; // Include starting point
+            
+            let cumulativeSavings = actualSavings["2023-10"];
+            let loanBalance = 0;
+            let lastActualSavingsMonth = "2023-10";
+            
+            const actualSavingsLine = [];
+            const loanLine = [];
+            const personalSavingsLine = [];
+            const labels = [];
+            
+            // Find last month with actual data
+            Object.keys(actualSavings).forEach(month => {
+                if (months.indexOf(month) > months.indexOf(lastActualSavingsMonth)) {
+                    lastActualSavingsMonth = month;
+                }
+            });
+            
+            allMonths.forEach((month, index) => {
+                labels.push(month);
+                
+                // Calculate loan balance with interest
+                if (index > 0) {
+                    // Add interest for the month
+                    loanBalance = loanBalance * (1 + monthlyInterestRate);
+                }
+                
+                // Add new loans or repayments
+                if (loanData[month]) {
+                    loanBalance += loanData[month];
+                }
+                
+                // Calculate actual savings
+                if (actualSavings[month] !== undefined) {
+                    cumulativeSavings = actualSavings[month];
+                } else if (salaryData[month]) {
+                    cumulativeSavings += salaryData[month];
+                }
+                
+                actualSavingsLine.push(cumulativeSavings);
+                loanLine.push(loanBalance);
+                personalSavingsLine.push(cumulativeSavings - loanBalance);
+            });
+            
+            // Calculate future projection
+            const lastActualIndex = allMonths.indexOf(lastActualSavingsMonth);
+            const futureMonths = months.slice(months.indexOf(lastActualSavingsMonth) + 1);
+            
+            let projectedSavings = actualSavings[lastActualSavingsMonth];
+            let projectedLoan = loanLine[lastActualIndex];
+            
+            const futureActualSavings = [...actualSavingsLine];
+            const futureLoanBalance = [...loanLine];
+            const futurePersonalSavings = [...personalSavingsLine];
+            
+            futureMonths.forEach((month, index) => {
+                const monthIndex = allMonths.indexOf(month);
+                
+                // Project loan with interest
+                projectedLoan = projectedLoan * (1 + monthlyInterestRate);
+                if (loanData[month]) {
+                    projectedLoan += loanData[month];
+                }
+                
+                // Project savings (full salary, no expenses)
+                projectedSavings += salaryData[month];
+                
+                futureActualSavings[monthIndex] = projectedSavings;
+                futureLoanBalance[monthIndex] = projectedLoan;
+                futurePersonalSavings[monthIndex] = projectedSavings - projectedLoan;
+            });
+            
+            return {
+                labels,
+                actualSavingsLine,
+                loanLine,
+                personalSavingsLine,
+                futureActualSavings,
+                futureLoanBalance,
+                futurePersonalSavings,
+                lastActualIndex,
+                allMonths
+            };
+        }
+
+        const data = processData();
+
+        // Create datasets
+        const historicalData = {
+            actual: data.actualSavingsLine.map((val, i) => i <= data.lastActualIndex ? val : null),
+            loan: data.loanLine.map((val, i) => i <= data.lastActualIndex ? val : null),
+            personal: data.personalSavingsLine.map((val, i) => i <= data.lastActualIndex ? val : null),
+        };
+
+        const futureData = {
+            actual: data.futureActualSavings.map((val, i) => i >= data.lastActualIndex ? val : null),
+            loan: data.futureLoanBalance.map((val, i) => i >= data.lastActualIndex ? val : null),
+            personal: data.futurePersonalSavings.map((val, i) => i >= data.lastActualIndex ? val : null),
+        };
+
+        // Create chart
+        const ctx = document.getElementById('savingsChart').getContext('2d');
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [
+                    {
+                        label: 'Actual Savings',
+                        data: historicalData.actual,
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                    },
+                    {
+                        label: 'Loan Balance',
+                        data: historicalData.loan,
+                        borderColor: '#dc3545',
+                        backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                    },
+                    {
+                        label: 'Personal Savings (Net)',
+                        data: historicalData.personal,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                    },
+                    {
+                        label: 'Future Projection (Actual)',
+                        data: futureData.actual,
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.05)',
+                        borderWidth: 2,
+                        borderDash: [10, 5],
+                        tension: 0.4,
+                        fill: false,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                    },
+                    {
+                        label: 'Future Projection (Loan)',
+                        data: futureData.loan,
+                        borderColor: '#dc3545',
+                        backgroundColor: 'rgba(220, 53, 69, 0.05)',
+                        borderWidth: 2,
+                        borderDash: [10, 5],
+                        tension: 0.4,
+                        fill: false,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                    },
+                    {
+                        label: 'Future Projection (Net)',
+                        data: futureData.personal,
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.05)',
+                        borderWidth: 2,
+                        borderDash: [10, 5],
+                        tension: 0.4,
+                        fill: false,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                    },
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: {
+                                size: 12,
+                                weight: '600'
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('en-US', {
+                                        style: 'currency',
+                                        currency: 'USD'
+                                    }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            },
+                            font: {
+                                size: 11
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45,
+                            font: {
+                                size: 10
+                            }
+                        },
+                        grid: {
+                            display: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // Toggle buttons
+        document.querySelectorAll('.toggle-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.classList.toggle('active');
+                const lineIndex = parseInt(this.dataset.line);
+                
+                // Map button index to dataset indices
+                const datasetMap = {
+                    0: [0, 3], // Actual Savings (historical + future)
+                    1: [1, 4], // Loan Balance (historical + future)
+                    2: [2, 5], // Personal Savings (historical + future)
+                    3: [3, 4, 5], // All future projections
+                };
+                
+                const datasets = datasetMap[lineIndex];
+                const isVisible = this.classList.contains('active');
+                
+                datasets.forEach(index => {
+                    chart.data.datasets[index].hidden = !isVisible;
+                });
+                
+                chart.update();
+            });
+        });
+
+        // Populate stats
+        function populateStats() {
+            const currentSavings = data.actualSavingsLine[data.lastActualIndex];
+            const currentLoan = data.loanLine[data.lastActualIndex];
+            const currentNet = currentSavings - currentLoan;
+            const projectedEnd = data.futureActualSavings[data.futureActualSavings.length - 1];
+            const projectedLoanEnd = data.futureLoanBalance[data.futureLoanBalance.length - 1];
+            const projectedNetEnd = projectedEnd - projectedLoanEnd;
+            
+            const totalSalary = Object.values(salaryData).reduce((a, b) => a + b, 0);
+            const totalLoans = Object.values(loanData).reduce((a, b) => a + b, 0);
+            
+            const statsHTML = `
+                <div class="stat-card">
+                    <h3>Current Savings</h3>
+                    <div class="value positive">$${currentSavings.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div class="change">As of ${data.allMonths[data.lastActualIndex]}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Current Loan Balance</h3>
+                    <div class="value negative">$${currentLoan.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div class="change">${interest}% annual interest</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Net Personal Savings</h3>
+                    <div class="value" style="color: #667eea;">$${currentNet.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div class="change">Savings minus loans</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Projected End Balance</h3>
+                    <div class="value positive">$${projectedNetEnd.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                    <div class="change">By ${data.labels[data.labels.length - 1]}</div>
+                </div>
+            `;
+            
+            document.getElementById('statsGrid').innerHTML = statsHTML;
+            
+            const infoHTML = `
+                <div class="info-item">
+                    <strong>Total Salary Earned</strong>
+                    <span>$${totalSalary.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                </div>
+                <div class="info-item">
+                    <strong>Total Loans Taken</strong>
+                    <span>$${totalLoans.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                </div>
+                <div class="info-item">
+                    <strong>Average Monthly Salary</strong>
+                    <span>$${(totalSalary / Object.keys(salaryData).length).toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                </div>
+                <div class="info-item">
+                    <strong>Months Tracked</strong>
+                    <span>${data.labels.length}</span>
+                </div>
+                <div class="info-item">
+                    <strong>Interest Rate</strong>
+                    <span>${interest}% annually</span>
+                </div>
+                <div class="info-item">
+                    <strong>Projected Loan (End)</strong>
+                    <span>$${projectedLoanEnd.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+                </div>
+            `;
+            
+            document.getElementById('infoGrid').innerHTML = infoHTML;
+        }
+
+        populateStats();
+    </script>
 </body>
 </html>
