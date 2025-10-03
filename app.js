@@ -39,13 +39,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const el = {
     chartCanvas: document.getElementById('savingsChart'),
     salaryChartCanvas: document.getElementById('salaryChart'),
-    toggleSavings: document.getElementById('toggle-savings'),
-    toggleLoan: document.getElementById('toggle-loan'),
-    toggleNet: document.getElementById('toggle-net'),
-    toggleFuture: document.getElementById('toggle-future'),
-    interestRange: document.getElementById('interestRange'),
-    interestNumber: document.getElementById('interestNumber'),
-    rangeSelect: document.getElementById('rangeSelect'),
     // Stats
     statNet: document.getElementById('stat-net'),
     statSavings: document.getElementById('stat-savings'),
@@ -64,6 +57,14 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const toCurrency = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+  const formatMonth = (s) => {
+    if (typeof s !== 'string') return s;
+    const m = s.match(/^(\d{4})-(\d{2})$/);
+    if (!m) return s;
+    const mm = m[2];
+    const yy = m[1].slice(2);
+    return `${mm}/${yy}`;
+  };
 
   function processData(interestRate) {
     // Build a sorted list of all months (YYYY-MM sorts lexicographically)
@@ -213,13 +214,13 @@ document.addEventListener('DOMContentLoaded', () => {
     el.statSavings.textContent = toCurrency(currentSavings);
     el.statDebt.textContent = toCurrency(currentLoan);
     el.statProjected.textContent = toCurrency(endNet);
-    el.asOf.textContent = data.labels[i];
-    el.projectionEnd.textContent = data.labels[data.labels.length - 1];
+    el.asOf.textContent = formatMonth(data.labels[i]);
+    el.projectionEnd.textContent = formatMonth(data.labels[data.labels.length - 1]);
 
     el.info12mGain.textContent = toCurrency(gain12m);
     el.infoAvgSalary.textContent = toCurrency(avgSalary);
     el.infoMedSalary.textContent = toCurrency(medSalary);
-    el.infoTopSalary.textContent = `${toCurrency(maxSalary)} in ${maxMonth}`;
+    el.infoTopSalary.textContent = `${toCurrency(maxSalary)} in ${formatMonth(maxMonth)}`;
     if (el.infoAvgExpenditure) el.infoAvgExpenditure.textContent = toCurrency(avgExpenditure);
     if (el.infoAvgSavings) el.infoAvgSavings.textContent = toCurrency(avgSavings);
     el.infoInterest.textContent = `${state.interest}% APR`;
@@ -253,7 +254,10 @@ document.addEventListener('DOMContentLoaded', () => {
             padding: 10,
             titleColor: '#e5e7eb',
             bodyColor: '#e5e7eb',
-            callbacks: { label: (ctx) => `${ctx.dataset.label}: ${toCurrency(ctx.parsed.y)}` }
+            callbacks: {
+              title: (items) => (items && items.length ? formatMonth(items[0].label) : ''),
+              label: (ctx) => `${ctx.dataset.label}: ${toCurrency(ctx.parsed.y)}`
+            }
           }
         },
         scales: {
@@ -264,7 +268,16 @@ document.addEventListener('DOMContentLoaded', () => {
           },
           x: {
             grid: { display: false },
-            ticks: { color: '#94a3b8', maxRotation: 0 }
+            ticks: {
+              color: '#94a3b8',
+              maxRotation: 0,
+              callback: function(value) {
+                const label = (this && typeof this.getLabelForValue === 'function')
+                  ? this.getLabelForValue(value)
+                  : value;
+                return formatMonth(label);
+              }
+            }
           }
         }
       }
@@ -294,7 +307,10 @@ document.addEventListener('DOMContentLoaded', () => {
             padding: 10,
             titleColor: '#e5e7eb',
             bodyColor: '#e5e7eb',
-            callbacks: { label: (ctx) => `${ctx.dataset.label}: ${toCurrency(ctx.parsed.y)}` }
+            callbacks: {
+              title: (items) => (items && items.length ? formatMonth(items[0].label) : ''),
+              label: (ctx) => `${ctx.dataset.label}: ${toCurrency(ctx.parsed.y)}`
+            }
           }
         },
         scales: {
@@ -305,7 +321,16 @@ document.addEventListener('DOMContentLoaded', () => {
           },
           x: {
             grid: { display: false },
-            ticks: { color: '#94a3b8', maxRotation: 0 }
+            ticks: {
+              color: '#94a3b8',
+              maxRotation: 0,
+              callback: function(value) {
+                const label = (this && typeof this.getLabelForValue === 'function')
+                  ? this.getLabelForValue(value)
+                  : value;
+                return formatMonth(label);
+              }
+            }
           }
         }
       }
@@ -328,20 +353,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let salaryChart = makeSalaryChart(salaryLabelsFiltered, salarySeriesFiltered);
   updateStats(processed);
 
-  function applyVisibility() {
-    const showSavings = el.toggleSavings.checked;
-    const showLoan = el.toggleLoan.checked;
-    const showNet = el.toggleNet.checked;
-    const showFuture = el.toggleFuture.checked;
-
-    chart.data.datasets[0].hidden = !showSavings;
-    chart.data.datasets[1].hidden = !showLoan;
-    chart.data.datasets[2].hidden = !showNet;
-    chart.data.datasets[3].hidden = !showSavings || !showFuture;
-    chart.data.datasets[4].hidden = !showLoan || !showFuture;
-    chart.data.datasets[5].hidden = !showNet || !showFuture;
-  }
-
   function redraw() {
     processed = processData(state.interest);
     baseDatasets = buildDatasets(processed);
@@ -354,8 +365,6 @@ document.addEventListener('DOMContentLoaded', () => {
     chart.data.datasets[3].data = filtered.datasets.future.actual;
     chart.data.datasets[4].data = filtered.datasets.future.loan;
     chart.data.datasets[5].data = filtered.datasets.future.personal;
-
-    applyVisibility();
     updateStats(processed);
     chart.update();
 
@@ -369,23 +378,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Event wiring
-  el.interestRange.addEventListener('input', (e) => {
-    state.interest = parseFloat(e.target.value) || 0;
-    el.interestNumber.value = state.interest;
-    redraw();
-  });
-  el.interestNumber.addEventListener('input', (e) => {
-    state.interest = parseFloat(e.target.value) || 0;
-    el.interestRange.value = state.interest;
-    redraw();
-  });
-  el.rangeSelect.addEventListener('change', (e) => {
-    state.range = e.target.value;
-    redraw();
-  });
-
-  [el.toggleSavings, el.toggleLoan, el.toggleNet, el.toggleFuture].forEach(cb => {
-    cb.addEventListener('change', () => { applyVisibility(); chart.update(); });
-  });
+  // No event wiring needed: static view without controls
 });
