@@ -22,6 +22,8 @@ const loanData = {
 
 const actualSavings = {
   "2023-10": 7985.16,
+  "2024-05": 22978.56,
+  "2024-06": 32978.56,
   "2025-08": 77085.43,
   "2025-09": 71002.89,
   "2025-10": 90971.57
@@ -35,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const el = {
     chartCanvas: document.getElementById('savingsChart'),
+    salaryChartCanvas: document.getElementById('salaryChart'),
     toggleSavings: document.getElementById('toggle-savings'),
     toggleLoan: document.getElementById('toggle-loan'),
     toggleNet: document.getElementById('toggle-net'),
@@ -54,7 +57,8 @@ document.addEventListener('DOMContentLoaded', () => {
     infoAvgSalary: document.getElementById('info-avg-salary'),
     infoMedSalary: document.getElementById('info-med-salary'),
     infoTopSalary: document.getElementById('info-top-salary'),
-    infoPeakLoan: document.getElementById('info-peak-loan'),
+    infoAvgExpenditure: document.getElementById('info-avg-expenditure'),
+    infoAvgSavings: document.getElementById('info-avg-savings'),
     infoInterest: document.getElementById('info-interest'),
   };
 
@@ -181,13 +185,27 @@ document.addEventListener('DOMContentLoaded', () => {
     let maxSalary = -Infinity, maxMonth = null;
     for (const [m, v] of Object.entries(salaryData)) { if (v > maxSalary) { maxSalary = v; maxMonth = m; } }
 
-    // Peak loan and debt-free month
-    let peakLoan = -Infinity, peakLoanMonth = null;
-    data.loanLine.forEach((v, idx) => { if (v > peakLoan) { peakLoan = v; peakLoanMonth = data.labels[idx]; } });
-    let debtFreeMonth = null;
-    for (let idx = i; idx < data.futureLoanBalance.length; idx++) {
-      if (data.futureLoanBalance[idx] <= 0) { debtFreeMonth = data.labels[idx]; break; }
+    // Average Savings (monthly)
+    const avgSavings = avgSalary;
+
+    // Approximate Average Expenditure: salary minus monthly net worth delta (clamped >= 0)
+    let expSum = 0, expCount = 0;
+    for (let idx = 1; idx < data.labels.length; idx++) {
+      const month = data.labels[idx];
+      const sal = salaryData[month];
+      if (sal == null) continue;
+      const prevIdx = idx - 1;
+      const netPrev = idx <= data.lastActualIndex
+        ? data.personalSavingsLine[prevIdx]
+        : data.futurePersonalSavings[prevIdx];
+      const netCurr = idx <= data.lastActualIndex
+        ? data.personalSavingsLine[idx]
+        : data.futurePersonalSavings[idx];
+      const deltaNet = netCurr - netPrev;
+      const exp = Math.max(0, sal - deltaNet);
+      expSum += exp; expCount++;
     }
+    const avgExpenditure = expCount ? (expSum / expCount) : 0;
 
     // Update DOM
     el.statNet.textContent = toCurrency(currentNet);
@@ -201,7 +219,8 @@ document.addEventListener('DOMContentLoaded', () => {
     el.infoAvgSalary.textContent = toCurrency(avgSalary);
     el.infoMedSalary.textContent = toCurrency(medSalary);
     el.infoTopSalary.textContent = `${toCurrency(maxSalary)} in ${maxMonth}`;
-    el.infoPeakLoan.textContent = `${toCurrency(peakLoan)} in ${peakLoanMonth}`;
+    if (el.infoAvgExpenditure) el.infoAvgExpenditure.textContent = toCurrency(avgExpenditure);
+    if (el.infoAvgSavings) el.infoAvgSavings.textContent = toCurrency(avgSavings);
     el.infoInterest.textContent = `${state.interest}% APR`;
   }
 
@@ -251,10 +270,61 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  function makeSalaryChart(labels, series) {
+    if (!el.salaryChartCanvas) return null;
+    const ctx = el.salaryChartCanvas.getContext('2d');
+    return new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Salary', data: series, backgroundColor: 'rgba(56,189,248,0.35)', borderColor: '#38bdf8', borderWidth: 1 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(15,23,42,0.9)',
+            borderColor: '#1f2937',
+            borderWidth: 1,
+            padding: 10,
+            titleColor: '#e5e7eb',
+            bodyColor: '#e5e7eb',
+            callbacks: { label: (ctx) => `${ctx.dataset.label}: ${toCurrency(ctx.parsed.y)}` }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: 'rgba(148,163,184,0.1)' },
+            ticks: { color: '#94a3b8', callback: (v) => '$' + v.toLocaleString() }
+          },
+          x: {
+            grid: { display: false },
+            ticks: { color: '#94a3b8', maxRotation: 0 }
+          }
+        }
+      }
+    });
+  }
+
+  function buildSalarySeriesForLabels(labels) {
+    return labels.map(m => (m in salaryData ? salaryData[m] : null));
+  }
+
   let processed = processData(state.interest);
   let baseDatasets = buildDatasets(processed);
   let filtered = applyRange(processed.labels, baseDatasets, state.range);
   let chart = makeChart(filtered.labels, filtered.datasets);
+  // Salary chart
+  let salarySeries = buildSalarySeriesForLabels(processed.labels);
+  let salaryChartRangeStart = (state.range === 'all') ? 0 : Math.max(0, processed.labels.length - parseInt(state.range, 10));
+  let salaryLabelsFiltered = processed.labels.slice(salaryChartRangeStart);
+  let salarySeriesFiltered = salarySeries.slice(salaryChartRangeStart);
+  let salaryChart = makeSalaryChart(salaryLabelsFiltered, salarySeriesFiltered);
   updateStats(processed);
 
   function applyVisibility() {
@@ -287,6 +357,15 @@ document.addEventListener('DOMContentLoaded', () => {
     applyVisibility();
     updateStats(processed);
     chart.update();
+
+    // Update salary chart
+    if (salaryChart) {
+      const series = buildSalarySeriesForLabels(processed.labels);
+      const start = (state.range === 'all') ? 0 : Math.max(0, processed.labels.length - parseInt(state.range, 10));
+      salaryChart.data.labels = processed.labels.slice(start);
+      salaryChart.data.datasets[0].data = series.slice(start);
+      salaryChart.update();
+    }
   }
 
   // Event wiring
@@ -309,4 +388,3 @@ document.addEventListener('DOMContentLoaded', () => {
     cb.addEventListener('change', () => { applyVisibility(); chart.update(); });
   });
 });
-
