@@ -140,9 +140,10 @@ document.addEventListener('DOMContentLoaded', () => {
       personal: data.personalSavingsLine.map((v, i) => (i <= data.lastActualIndex ? v : null)),
     };
     const future = {
-      actual: data.futureActualSavings.map((v, i) => (i >= data.lastActualIndex ? v : null)),
-      loan: data.futureLoanBalance.map((v, i) => (i >= data.lastActualIndex ? v : null)),
-      personal: data.futurePersonalSavings.map((v, i) => (i >= data.lastActualIndex ? v : null)),
+      // Start projections after the last actual month so hover shows only actual for the current month.
+      actual: data.futureActualSavings.map((v, i) => (i > data.lastActualIndex ? v : null)),
+      loan: data.futureLoanBalance.map((v, i) => (i > data.lastActualIndex ? v : null)),
+      personal: data.futurePersonalSavings.map((v, i) => (i > data.lastActualIndex ? v : null)),
     };
     return { historical, future };
   }
