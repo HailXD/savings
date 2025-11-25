@@ -28,7 +28,7 @@ const actualSavings = {
   "2025-08": 77085.43,
   "2025-09": 71002.89,
   "2025-10": 91463.12,
-  "2025-11": 102243.44,
+  "2025-11": 105753.65,
 };
 
 document.addEventListener('DOMContentLoaded', () => {
