@@ -67,6 +67,21 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${mm}/${yy}`;
   };
 
+  const computeRangeStart = (len, range) => {
+    if (range === 'all') return 0;
+    const n = parseInt(range, 10);
+    return Math.max(0, len - n);
+  };
+
+  const projectedTooltipFilter = (item) => {
+    const chartInstance = item && item.chart;
+    const lastActualIndex = chartInstance ? chartInstance.$lastActualViewIndex : null;
+    const isProjected = item && item.dataset && typeof item.dataset.label === 'string'
+      && item.dataset.label.includes('(Projected)');
+    if (isProjected && lastActualIndex != null && item.dataIndex === lastActualIndex) return false;
+    return true;
+  };
+
   function processData(interestRate) {
     // Build a sorted list of all months (YYYY-MM sorts lexicographically)
     const baselineMonth = '2023-10';
@@ -140,18 +155,17 @@ document.addEventListener('DOMContentLoaded', () => {
       personal: data.personalSavingsLine.map((v, i) => (i <= data.lastActualIndex ? v : null)),
     };
     const future = {
-      // Start projections after the last actual month so hover shows only actual for the current month.
-      actual: data.futureActualSavings.map((v, i) => (i > data.lastActualIndex ? v : null)),
-      loan: data.futureLoanBalance.map((v, i) => (i > data.lastActualIndex ? v : null)),
-      personal: data.futurePersonalSavings.map((v, i) => (i > data.lastActualIndex ? v : null)),
+      // Include the last actual point so the dotted projection starts there, but suppress its tooltip for projections.
+      actual: data.futureActualSavings.map((v, i) => (i >= data.lastActualIndex ? v : null)),
+      loan: data.futureLoanBalance.map((v, i) => (i >= data.lastActualIndex ? v : null)),
+      personal: data.futurePersonalSavings.map((v, i) => (i >= data.lastActualIndex ? v : null)),
     };
     return { historical, future };
   }
 
   function applyRange(labels, datasets, range) {
     if (range === 'all') return { labels, datasets };
-    const n = parseInt(range, 10);
-    const start = Math.max(0, labels.length - n);
+    const start = computeRangeStart(labels.length, range);
     const slice = (arr) => arr.slice(start);
     return {
       labels: labels.slice(start),
@@ -256,6 +270,7 @@ document.addEventListener('DOMContentLoaded', () => {
             padding: 10,
             titleColor: '#e5e7eb',
             bodyColor: '#e5e7eb',
+            filter: projectedTooltipFilter,
             callbacks: {
               title: (items) => (items && items.length ? formatMonth(items[0].label) : ''),
               label: (ctx) => `${ctx.dataset.label}: ${toCurrency(ctx.parsed.y)}`
@@ -346,10 +361,15 @@ document.addEventListener('DOMContentLoaded', () => {
   let processed = processData(state.interest);
   let baseDatasets = buildDatasets(processed);
   let filtered = applyRange(processed.labels, baseDatasets, state.range);
+  const rangeStart = computeRangeStart(processed.labels.length, state.range);
+  const viewLastActualIndex = processed.lastActualIndex - rangeStart;
   let chart = makeChart(filtered.labels, filtered.datasets);
+  chart.$lastActualViewIndex = (viewLastActualIndex >= 0 && viewLastActualIndex < filtered.labels.length)
+    ? viewLastActualIndex
+    : null;
   // Salary chart
   let salarySeries = buildSalarySeriesForLabels(processed.labels);
-  let salaryChartRangeStart = (state.range === 'all') ? 0 : Math.max(0, processed.labels.length - parseInt(state.range, 10));
+  let salaryChartRangeStart = rangeStart;
   let salaryLabelsFiltered = processed.labels.slice(salaryChartRangeStart);
   let salarySeriesFiltered = salarySeries.slice(salaryChartRangeStart);
   let salaryChart = makeSalaryChart(salaryLabelsFiltered, salarySeriesFiltered);
@@ -360,6 +380,9 @@ document.addEventListener('DOMContentLoaded', () => {
     baseDatasets = buildDatasets(processed);
     filtered = applyRange(processed.labels, baseDatasets, state.range);
 
+    const start = computeRangeStart(processed.labels.length, state.range);
+    const lastActualViewIndex = processed.lastActualIndex - start;
+
     chart.data.labels = filtered.labels;
     chart.data.datasets[0].data = filtered.datasets.historical.actual;
     chart.data.datasets[1].data = filtered.datasets.historical.loan;
@@ -367,13 +390,15 @@ document.addEventListener('DOMContentLoaded', () => {
     chart.data.datasets[3].data = filtered.datasets.future.actual;
     chart.data.datasets[4].data = filtered.datasets.future.loan;
     chart.data.datasets[5].data = filtered.datasets.future.personal;
+    chart.$lastActualViewIndex = (lastActualViewIndex >= 0 && lastActualViewIndex < filtered.labels.length)
+      ? lastActualViewIndex
+      : null;
     updateStats(processed);
     chart.update();
 
     // Update salary chart
     if (salaryChart) {
       const series = buildSalarySeriesForLabels(processed.labels);
-      const start = (state.range === 'all') ? 0 : Math.max(0, processed.labels.length - parseInt(state.range, 10));
       salaryChart.data.labels = processed.labels.slice(start);
       salaryChart.data.datasets[0].data = series.slice(start);
       salaryChart.update();
